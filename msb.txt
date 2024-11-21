@@ -1,0 +1,68 @@
+from PIL import Image
+import numpy as np
+
+def encode_message_msb(image, message):
+    # Convert the message to binary and add a delimiter
+    binary_message = ''.join(format(ord(char), '08b') for char in message)
+    binary_message += '1111111111111110'  # Delimiter to mark the end of the message
+
+    data_index = 0
+    total_pixels = image.shape[0] * image.shape[1] * 3  # Total RGB values available
+
+    if len(binary_message) > total_pixels:
+        raise ValueError("Message is too large to encode in the image.")
+
+    # Modify the image pixels to encode the binary message in the MSB
+    for row in image:
+        for pixel in row:
+            for color in range(3):  # Iterate through RGB values
+                if data_index < len(binary_message):
+                    # Replace the most significant bit with the message bit
+                    pixel[color] = (pixel[color] & 0x7F) | (int(binary_message[data_index]) << 7)
+                    data_index += 1
+
+    return image
+
+def decode_message_msb(encoded_image):
+    binary_data = ""
+
+    # Extract the most significant bits to reconstruct the binary message
+    for row in encoded_image:
+        for pixel in row:
+            for color in range(3):  # Iterate through RGB values
+                binary_data += str((pixel[color] & 0x80) >> 7)  # Extract the MSB
+
+    # Split the binary data into bytes
+    all_bytes = [binary_data[i: i + 8] for i in range(0, len(binary_data), 8)]
+    
+    # Convert binary data to the decoded message
+    decoded_message = ""
+    for byte in all_bytes:
+        if byte == '11111110':  # End delimiter
+            break
+        decoded_message += chr(int(byte, 2))
+
+    return decoded_message
+
+# Paths and message
+image_path = "/content/drive/MyDrive/yolo_files/horse.jpeg"
+output_path = "/content/drive/MyDrive/yolo_files/horse_encoded.png"
+message = "hello this is a secret"
+
+# Load the image
+image = np.array(Image.open(image_path))
+
+# Encode the message
+encoded_image = encode_message_msb(image.copy(), message)
+
+# Save the encoded image
+Image.fromarray(encoded_image).save(output_path)
+
+# Load the encoded image for decoding
+encoded_image = np.array(Image.open(output_path))
+
+# Decode the message
+decoded_message = decode_message_msb(encoded_image)
+
+# Print the decoded message
+print("Decoded message:", decoded_message)

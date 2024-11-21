@@ -1,0 +1,16 @@
+import socket
+
+HOST = 'localhost'
+PORT = 12345
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+    client_socket.connect((HOST, PORT))
+    print(f'Connected to {HOST}:{PORT}. Type "bye" to exit.')
+    
+    while True:
+        message = input("You: ")
+        client_socket.sendall(message.encode())
+        data = client_socket.recv(1024)
+        print(f'Server: {data.decode()}')
+        if message.lower() == 'bye':
+            break
